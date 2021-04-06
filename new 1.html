@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>One Source Restoration Dat Teams</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.css" rel="stylesheet">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.js"></script>
+
+
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+</head>
+<body>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.0/mapbox-gl-directions.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.0/mapbox-gl-directions.css" type="text/css">
+<div id="map"></div>
+ 
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoiZmVuaXhpc3IiLCJhIjoiY2p0ZzRrZG8zMXpxYzN6b2F2dDNoaDdpZyJ9.9WEldBGyCURLsfR3CZmLWA';
+var map = new mapboxgl.Map({
+container: 'map',
+style: 'mapbox://styles/mapbox/dark-v9',
+center: [-103.59179687498357, 40.66995747013945],
+zoom: 4
+});
+
+map.addControl(
+new MapboxDirections({
+accessToken: mapboxgl.accessToken
+}),
+'top-left'
+);
+ 
+map.on('load', function () {
+// Add a new source from our GeoJSON data and
+// set the 'cluster' option to true. GL-JS will
+// add the point_count property to your source data.
+map.addSource('datteams', {
+type: 'geojson',
+
+data:
+'https://raw.githubusercontent.com/OSRfenix/test/main/osr1.geojson',
+cluster: true,
+clusterMaxZoom: 16, // Max zoom to cluster points on
+clusterRadius: 200 // Radius of each cluster when clustering points (defaults to 50)
+});
+ 
+map.addLayer({
+id: 'clusters',
+type: 'circle',
+source: 'datteams',
+filter: ['has', 'point_count'],
+paint: {
+'circle-color': [
+'step',
+['get', 'point_count'],
+'#ffaf7a',
+1,
+'#ff9d5c',
+25,
+'#FF4500',
+50,
+'#FF6600'
+],
+'circle-radius': [
+'step',
+['get', 'point_count'],
+20,
+100,
+30,
+750,
+40
+]
+}
+});
+ 
+map.addLayer({
+id: 'cluster-count',
+type: 'symbol',
+source: 'datteams',
+filter: ['has', 'point_count'],
+layout: {
+'text-field': '{point_count_abbreviated}',
+'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+'text-size': 14
+}
+});
+ 
+map.addLayer({
+id: 'unclustered-point',
+type: 'circle',
+source: 'datteams',
+filter: ['!', ['has', 'point_count']],
+paint: {
+'circle-color': '#FFFFFF',
+'circle-radius': 15,
+'circle-stroke-width': 1,
+'circle-stroke-color': '#000000'
+}
+});
+
+// inspect a cluster on click
+map.on('click', 'clusters', function (e) {
+var features = map.queryRenderedFeatures(e.point, {
+layers: ['clusters']
+});
+var clusterId = features[0].properties.cluster_id;
+map.getSource('datteams').getClusterExpansionZoom(
+clusterId,
+function (err, zoom) {
+if (err) return;
+ 
+map.easeTo({
+center: features[0].geometry.coordinates,
+zoom: zoom
+});
+}
+);
+});
+ 
+//When a click event occurs on a feature in
+ //the unclustered-point layer, open a popup at
+ //the location of the feature, with
+ //description HTML from its properties.
+map.on('click', 'unclustered-point', function (e) {
+var coordinates = e.features[0].geometry.coordinates.slice();
+var name = e.features[0].properties.Name;
+
+ 
+// Ensure that if the map is zoomed out such that
+// multiple copies of the feature are visible, the
+// popup appears over the copy being pointed to.
+while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+}
+ 
+new mapboxgl.Popup()
+.setLngLat(coordinates)
+.setHTML(Name)
+.addTo(map);
+});
+ 
+map.on('mouseenter', 'clusters', function () {
+map.getCanvas().style.cursor = 'pointer';
+});
+map.on('mouseleave', 'clusters', function () {
+map.getCanvas().style.cursor = '';
+});
+});
+
+
+</script>
+ 
+</body>
+</html>
